@@ -31,7 +31,6 @@ class NeuralNetwork:
         self.patience = hyperparameters["patience"]
         self.optimizer = hyperparameters["optimizer"]
         self.loss = hyperparameters["loss_function"]
-        self.classes = hyperparameters["classes"]
         self.num_of_classes = hyperparameters["num_of_classes"]
         self.model_to_train = hyperparameters["model_to_train"]
         self.weight_path = hyperparameters["weight_path"]
@@ -93,7 +92,7 @@ class NeuralNetwork:
 
         self.model.summary()
 
-        if (self.load_weights_flag): 
+        if self.load_weights_flag == "True": 
             if path.exists(self.weight_path):
                 self.model.load_weights(self.weight_path)
             else: 
@@ -110,7 +109,8 @@ class NeuralNetwork:
             validation_data=(x_val, y_val),
             callbacks=[self.checkpoint, self.earlystopping]
         )
-
+        self.model.save(self.model_to_train+"-model.h5")
+        #self.save_model()
         pass
 
     def train_generator(self, train_gen, valid_gen):
@@ -125,13 +125,13 @@ class NeuralNetwork:
 
         self.model.summary()
 
-        if (self.load_weights_flag): 
+        if self.load_weights_flag == "True": 
             if path.exists(self.weight_path):
                 self.model.load_weights(self.weight_path)
             else: 
                 raise ValueError("Weight path does not exist")
         
-        self.model.compile(loss=self.loss, optimizer=self.opti, metrics=["accuracy", self.jaccard_index])
+        self.model.compile(loss=self.loss, optimizer=self.opti, metrics=["accuracy"])
 
         self.history = self.model.fit_generator(
             train_gen,
@@ -139,7 +139,10 @@ class NeuralNetwork:
             epochs=self.epochs, 
             validation_data=valid_gen,
             validation_steps=len(valid_gen),
-            callbacks=[self.checkpoint, self.earlystopping])
+            callbacks=[self.checkpoint, self.earlystopping]
+        )
+        self.model.save(self.model_to_train+"-model.h5")
+        #self.save_model()
         pass
 
     def predict(self, x_test, y_test):
@@ -157,6 +160,15 @@ class NeuralNetwork:
         scores = self.model.evaluate(x_test, y_test, verbose=1)
         return scores
 
+    def save_model(self,):
+        from keras.models import model_from_json
+
+        # serialize model to JSON
+        model_json = self.model.to_json()
+
+        with open(self.model_to_train + "-model.json", "w") as json_file:
+            json_file.write(model_json)
+        pass
 
     def jaccard_index(self, y_true, y_pred, smooth=1e-12):
         """
