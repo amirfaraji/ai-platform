@@ -7,12 +7,13 @@ dependencies:
   - python=3.6
   - numpy=1.16.4
   - pip=19.1.1
-  - Pillow=4.3.0
+  - matplotlib=3.0.3
   - pip:
     - tensorflow==1.14.0
     - keras==2.2.4
     - mlflow==1.0.0
-    - matplotlib==3.0.3
+    - Pillow==4.3.0
+    - ipykernel==4.8.0
     - opencv-python==3.4.5.20
     - scikit-learn==0.21.2
 
