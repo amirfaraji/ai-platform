@@ -2,7 +2,7 @@ name:  Attention-Network-Classification
 conda_env: conda.yaml
 
 entry_points:
-    train:
+    main:
         parameters:
             batch_size: {type: int, default: 8}
             learning_rate: {type: float, default: 0.001}
@@ -15,13 +15,14 @@ entry_points:
             img_channel : {type: int, default: 1}
             num_of_classes : {type: int, default: 2}
             model_to_train : {type: string, default: 'ResNet-Attention'}
-            weight_path : {type: string, default: 'weights.h5'}
+            weight_path : {type: string, default: './pretrain_weights/pretrained-RAN-weights.h5'}
             load_weights_flag: {type: bool, default: False}
         command: "python train.py {batch_size} {learning_rate} {epochs} {optimizer} {patience} {loss_function} {img_wid} {img_hgt} {img_channel} {num_of_classes} {model_to_train} {weight_path} {load_weights_flag}"
     
-    main:
+    predict:
         parameters:
-            model_path : {type: string, default: 'ResNet-Attention-model.h5'}
-            weight_path : {type: string, default: 'ResNet-Attention-weights-improvement.h5'}
-        command: "python predict.py {model_path} {weight_path}"
+            model_path : {type: string, default: 'model.h5'}
+            weight_path : {type: string, default: './pretrain_weights/pretrained-RAN-weights.h5'}
+            image_path : {type: string, default: ''}
+        command: "python predict.py {model_path} {weight_path} {image_path}"
 

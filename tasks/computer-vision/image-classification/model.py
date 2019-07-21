@@ -38,10 +38,10 @@ def residual_connection(input1, input2, nb_outputs, kernel, strides=(1,1), paddi
     """
 
     if strides == (2,2):
-        shortcut = Conv2D(nb_outputs, kernel_size=kernel, strides=strides, padding='same')(input1)
+        shortcut = Conv2D(nb_outputs, kernel_size=(1,1), strides=strides, padding='same')(input1)
         shortcut = BatchNormalization()(shortcut)
     else:
-        shortcut = Conv2D(nb_outputs, kernel_size=kernel, strides=(1,1), padding='same')(input1)
+        shortcut = Conv2D(nb_outputs, kernel_size=(1,1), strides=(1,1), padding='same')(input1)
         shortcut = BatchNormalization()(shortcut)
     
     conv_layer = Conv2D(nb_outputs, kernel_size=kernel, strides=(1,1), padding='same')(input2)
@@ -107,11 +107,11 @@ def build_res_attention_net(img_shape, nb_classes):
 
     # Block 2
     blk2 = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), padding='same')(blk1)
-    blk2_1 = common_layers(blk2, 64, kernel=(1, 1), padding='same')
-    shortcut2 = residual_connection(blk2, blk2_1, nb_outputs=256, kernel=(1,1))
+    blk2_1 = common_layers(blk2, 64, kernel=(3, 3), padding='same')
+    shortcut2 = residual_connection(blk2, blk2_1, nb_outputs=256, kernel=(3, 3))
 
-    blk2_1 = common_layers(shortcut2, 64, kernel=(1, 1), padding='same')
-    shortcut2 = residual_connection(shortcut2, blk2_1, nb_outputs=64, kernel=(1,1))
+    blk2_2 = common_layers(shortcut2, 64, kernel=(3, 3), padding='same')
+    shortcut2 = residual_connection(shortcut2, blk2_2, nb_outputs=64, kernel=(3, 3))
 
     attent2 = attention_module(blk2, 64, 64)
     multiply2 = Multiply()([attent2, shortcut2])
@@ -119,11 +119,11 @@ def build_res_attention_net(img_shape, nb_classes):
 
 
     # Block 3
-    blk3_1 = common_layers(h2, 128, kernel=(1, 1), strides=(2,2), padding='same')
-    shortcut3 = residual_connection(h2, blk3_1, nb_outputs=128, kernel=(1,1), strides=(2,2))
+    blk3_1 = common_layers(h2, 128, kernel=(3, 3), strides=(2,2), padding='same')
+    shortcut3 = residual_connection(h2, blk3_1, nb_outputs=128, kernel=(3, 3), strides=(2,2))
 
-    blk3_1 = common_layers(shortcut3, 128, kernel=(1, 1), padding='same')
-    shortcut3 = residual_connection(shortcut3, blk3_1, nb_outputs=128, kernel=(1,1))
+    blk3_2 = common_layers(shortcut3, 128, kernel=(3, 3), padding='same')
+    shortcut3 = residual_connection(shortcut3, blk3_2, nb_outputs=128, kernel=(3, 3))
     
     attent3 = attention_module(MaxPooling2D(padding='same')(h2), 128, 128)
     multiply3 = Multiply()([attent3, shortcut3])
@@ -131,19 +131,19 @@ def build_res_attention_net(img_shape, nb_classes):
     
 
     # Block 4
-    blk4_1 = common_layers(h3, 256, kernel=(1, 1), strides=(2,2), padding='same')
-    shortcut4 = residual_connection(h3, blk4_1, nb_outputs=256, kernel=(1,1), strides=(2,2))
+    blk4_1 = common_layers(h3, 256, kernel=(3, 3), strides=(2,2), padding='same')
+    shortcut4 = residual_connection(h3, blk4_1, nb_outputs=256, kernel=(3, 3), strides=(2,2))
 
-    blk4_1 = common_layers(shortcut4, 256, kernel=(1, 1), padding='same')
-    shortcut4 = residual_connection(shortcut4, blk4_1, nb_outputs=128, kernel=(1,1))
+    blk4_2 = common_layers(shortcut4, 256, kernel=(3, 3), padding='same')
+    shortcut4 = residual_connection(shortcut4, blk4_2, nb_outputs=128, kernel=(3, 3))
     
 
     # Block 5
-    blk5_1 = common_layers(shortcut4, 512, kernel=(1, 1), strides=(2,2), padding='same')
-    shortcut5 = residual_connection(shortcut4, blk5_1, nb_outputs=128, kernel=(1,1), strides=(2,2))
+    blk5_1 = common_layers(shortcut4, 512, kernel=(3, 3), strides=(2,2), padding='same')
+    shortcut5 = residual_connection(shortcut4, blk5_1, nb_outputs=128, kernel=(3, 3), strides=(2,2))
 
-    blk3_1 = common_layers(shortcut5, 512, kernel=(1, 1), padding='same')
-    shortcut5 = residual_connection(shortcut5, blk5_1, nb_outputs=128, kernel=(1,1))
+    blk5_2 = common_layers(shortcut5, 512, kernel=(3, 3), padding='same')
+    shortcut5 = residual_connection(shortcut5, blk5_2, nb_outputs=128, kernel=(3, 3))
 
     # FCN
     x = GlobalAveragePooling2D()(shortcut5)

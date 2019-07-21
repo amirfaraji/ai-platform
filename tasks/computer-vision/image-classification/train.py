@@ -1,3 +1,4 @@
+from google_drive_downloader import GoogleDriveDownloader as gdd
 from hyperparameters import mri_hyperparameters
 from PIL import Image
 from sklearn.model_selection import train_test_split
@@ -11,13 +12,15 @@ import neuralnetwork as nn
 import numpy as np
 import os
 
+
+
 RANDOM_STATE = 100
 
 
 
 def mri_tumor_detection():
     """
-    Small dataset with binary classification For Training and Testing purposes
+    Small Kaggle dataset with binary classification For Training and Testing purposes
     https://www.kaggle.com/navoneel/brain-mri-images-for-brain-tumor-detection
     """
     img_dir = ["./brain-mri-images-for-brain-tumor-detection/no/", "./brain-mri-images-for-brain-tumor-detection/yes/"]
@@ -63,4 +66,15 @@ def mri_tumor_detection():
 
 
 if __name__== "__main__":
-   mri_tumor_detection()
+
+    if not os.path.exists('./brain-mri-images-for-brain-tumor-detection'):
+        print("Downloading 'Brain MRI Dataset'")
+        gdd.download_file_from_google_drive(
+            file_id='1mpxHKunUg01DH6_xD8ozzianXPObHFJ2',
+            dest_path='./brain-mri-images-for-brain-tumor-detection.zip',
+            unzip=True
+        )
+    else: 
+        print("Dataset already exists")
+
+    mri_tumor_detection()

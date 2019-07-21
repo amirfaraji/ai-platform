@@ -1,11 +1,15 @@
+from google_drive_downloader import GoogleDriveDownloader as gdd
 from keras import backend as K
 from keras import optimizers
 from keras.callbacks import ModelCheckpoint, EarlyStopping
-from keras.models import Sequential, Model
+from keras.models import Sequential, Model, load_model
 from keras.preprocessing.image import ImageDataGenerator
 from os import path
 
+import mlflow
+import mlflow.keras
 import model as m
+import numpy as np
 
 
 class NeuralNetwork:
@@ -49,7 +53,7 @@ class NeuralNetwork:
         else: 
             self.opti = optimizers.sgd(lr=self.learning_rate, decay=1e-6, momentum=0.9, nesterov=True)
 
-        weight_checkpoint_path= self.model_to_train+"-weights-improvement.h5"
+        weight_checkpoint_path= "./saved_weights/"+self.model_to_train+"-weights-improvement.h5"
         self.checkpoint = ModelCheckpoint(
             weight_checkpoint_path, 
             monitor='val_acc', 
@@ -78,6 +82,27 @@ class NeuralNetwork:
 
         pass
 
+    def _load_model(self,):
+        """
+        Loads model  
+        :param :  
+        :return: 
+        """
+        model_path = './model.h5'
+        print("Downloading Model as", model_path)
+        gdd.download_file_from_google_drive(
+            file_id='1USZ--9XrfO5oXwKJsh91lJnDtKnVV4n3',
+            dest_path=model_path,
+            unzip=False
+        )
+        print("Downloading pretrained weights")
+        gdd.download_file_from_google_drive(
+            file_id='10CuubJJ7mhg3JsK0mp7sBvGCxNPH720X',
+            dest_path='./pretrain_weights/pretrained-RAN-weights.h5',
+            unzip=False
+        )
+        self.model = load_model(model_path)
+
     def train(self, x_train, y_train, x_val, y_val):
         """
         Train without generator
@@ -87,8 +112,11 @@ class NeuralNetwork:
         :param y_val: Validation label
         :return: 
         """
+        # Builds model from scratch
+        # self._build_model()
 
-        self._build_model()
+        # Downloads and loads model on runtime
+        self._load_model()
 
         self.model.summary()
 
@@ -98,7 +126,7 @@ class NeuralNetwork:
             else: 
                 raise ValueError("Weight path does not exist")
         
-        self.model.compile(loss=self.loss, optimizer=self.opti, metrics=["accuracy", self.jaccard_index])
+        self.model.compile(loss=self.loss, optimizer=self.opti, metrics=["accuracy"])
 
 
         self.history = self.model.fit(x_train, 
@@ -109,8 +137,33 @@ class NeuralNetwork:
             validation_data=(x_val, y_val),
             callbacks=[self.checkpoint, self.earlystopping]
         )
-        self.model.save(self.model_to_train+"-model.h5")
-        #self.save_model()
+
+        # Save the last run model
+        # self.model.save(self.model_to_train+"-model.h5")
+
+        with mlflow.start_run():
+            mlflow.log_param("batch_size", self.batch_size)
+            mlflow.log_param("epochs", self.epochs)
+            mlflow.log_param("learning_rate", self.learning_rate)
+            mlflow.log_param("optimizer", self.optimizer)
+            mlflow.log_param("loss_function", self.loss)
+            mlflow.log_param("num_of_classes", self.num_of_classes)
+            mlflow.log_param("model_to_train", self.model_to_train)
+            mlflow.log_param("weight_path", self.weight_path)
+            mlflow.log_param("load_weights_flag", self.load_weights_flag)
+            # log metrics
+            mlflow.log_metric("training_loss", self.history.history['loss'][-1])
+            mlflow.log_metric("training_acc",  self.history.history['acc'][-1])
+            mlflow.log_metric("validation_loss", self.history.history['val_loss'][-1])
+            mlflow.log_metric("validation_acc",  self.history.history['val_acc'][-1])
+            mlflow.log_metric("peak_validation_acc", np.amax(self.history.history['val_acc']))
+
+
+            # log artifacts (matplotlib images for loss/accuracy)
+            # mlflow.log_artifacts(image_dir)
+            #log model
+            mlflow.keras.log_model(self.model, self.model_to_train+"-model")
+
         pass
 
     def train_generator(self, train_gen, valid_gen):
@@ -120,8 +173,11 @@ class NeuralNetwork:
         :param valid_gen:  
         :return: 
         """
+        # Builds model from scratch
+        # self._build_model()
 
-        self._build_model()
+        # Downloads and loads model on runtime
+        self._load_model()
 
         self.model.summary()
 
@@ -141,8 +197,32 @@ class NeuralNetwork:
             validation_steps=len(valid_gen),
             callbacks=[self.checkpoint, self.earlystopping]
         )
-        self.model.save(self.model_to_train+"-model.h5")
-        #self.save_model()
+        
+        # Save the last run model
+        # self.model.save(self.model_to_train+"-model.h5")
+
+        with mlflow.start_run():
+            mlflow.log_param("batch_size", self.batch_size)
+            mlflow.log_param("epochs", self.epochs)
+            mlflow.log_param("learning_rate", self.learning_rate)
+            mlflow.log_param("optimizer", self.optimizer)
+            mlflow.log_param("loss_function", self.loss)
+            mlflow.log_param("num_of_classes", self.num_of_classes)
+            mlflow.log_param("model_to_train", self.model_to_train)
+            mlflow.log_param("weight_path", self.weight_path)
+            mlflow.log_param("load_weights_flag", self.load_weights_flag)
+            # log metrics
+            mlflow.log_metric("training_loss", self.history.history['loss'][-1])
+            mlflow.log_metric("training_acc",  self.history.history['acc'][-1])
+            mlflow.log_metric("validation_loss", self.history.history['val_loss'][-1])
+            mlflow.log_metric("validation_acc",  self.history.history['val_acc'][-1])
+            mlflow.log_metric("peak_validation_acc", np.amax(self.history.history['val_acc']))
+
+
+            # log artifacts (matplotlib images for loss/accuracy)
+            # mlflow.log_artifacts(image_dir)
+            #log model
+            mlflow.keras.log_model(self.model, self.model_to_train+"-model")
         pass
 
     def predict(self, x_test, y_test):
@@ -155,31 +235,15 @@ class NeuralNetwork:
 
         if path.exists(self.model_to_train+'-weights-improvement.h5'):
             self.model.load_weights(self.model_to_train+'-weights-improvement.h5')
-        self.model.compile(loss=self.loss, optimizer=self.opti, metrics=["accuracy", self.jaccard_index])
+        self.model.compile(loss=self.loss, optimizer=self.opti, metrics=["accuracy"])
         
         scores = self.model.evaluate(x_test, y_test, verbose=1)
         return scores
 
     def save_model(self,):
-        from keras.models import model_from_json
-
         # serialize model to JSON
         model_json = self.model.to_json()
 
         with open(self.model_to_train + "-model.json", "w") as json_file:
             json_file.write(model_json)
         pass
-
-    def jaccard_index(self, y_true, y_pred, smooth=1e-12):
-        """
-        Metric - Jaccard Index
-        :param y_true: True labels
-        :param y_pred: Predicted labels
-        :param smooth:   
-        :return: Jaccard index 
-        """
-
-        y_true_f = K.flatten(y_true)
-        y_pred_f = K.flatten(y_pred)
-        intersection = K.sum(y_true_f * y_pred_f)
-        return (intersection + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) - intersection + smooth)
